@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Sanity dataset export (contains all parsed content - use scripts/import-content-to-sanity.ts to regenerate)
+sanity-export.ndjson
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
+npm-debug.log*
