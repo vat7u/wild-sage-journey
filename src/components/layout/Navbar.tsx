@@ -9,6 +9,10 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
+  if (pathname?.startsWith("/studio")) {
+    return null;
+  }
+
   // Primary navigation as specified by user
   const navItems = [
     { label: "Story", href: "/journey" },
