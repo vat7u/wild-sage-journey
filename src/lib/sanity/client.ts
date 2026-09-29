@@ -2,7 +2,7 @@ import { createClient } from "@sanity/client";
 import seedData from "@/lib/content/seedData.json";
 import { Day, Chapter, Practice, Place, SiteSettings } from "@/lib/types";
 
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "tun41dyc";
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
 const apiVersion = "2024-03-01";
 
@@ -26,8 +26,11 @@ export function getSlugString(slug: { current: string } | string | undefined): s
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (sanityClient) {
     try {
-      const res = await sanityClient.fetch<SiteSettings>(`*[_type == "siteSettings"][0]`);
-      if (res) return res;
+      const res = await sanityClient.fetch<SiteSettings>(`*[_type == "siteSettings"][0]{
+        ...,
+        "heroImageUrl": coalesce(heroImage.asset->url, heroImageUrl)
+      }`);
+      if (res && res.siteTitle) return res;
     } catch (e) {
       console.warn("Sanity fetch failed, using local seed data:", e);
     }
@@ -39,7 +42,10 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 export async function getAllChapters(): Promise<Chapter[]> {
   if (sanityClient) {
     try {
-      const res = await sanityClient.fetch<Chapter[]>(`*[_type == "chapter"] | order(order asc)`);
+      const res = await sanityClient.fetch<Chapter[]>(`*[_type == "chapter"] | order(order asc){
+        ...,
+        "imageUrl": coalesce(coverImage.asset->url, imageUrl)
+      }`);
       if (res && res.length > 0) return res;
     } catch (e) {
       console.warn("Sanity fetch failed, using local seed data:", e);
@@ -57,7 +63,24 @@ export async function getChapterBySlug(slug: string): Promise<Chapter | null> {
 export async function getAllDays(): Promise<Day[]> {
   if (sanityClient) {
     try {
-      const res = await sanityClient.fetch<Day[]>(`*[_type == "day"] | order(order asc)`);
+      const res = await sanityClient.fetch<Day[]>(`*[_type == "day"] | order(order asc){
+        ...,
+        "chapterSlug": coalesce(chapter->slug.current, chapterSlug),
+        "practiceSlugs": coalesce(practices[]->slug.current, practiceSlugs),
+        "coverImageUrl": coalesce(coverImage.asset->url, coverImageUrl),
+        "coverImageCaption": coalesce(coverImage.caption, coverImageCaption),
+        "gallery": gallery[]{
+          ...,
+          "url": coalesce(asset->url, url)
+        },
+        "story": story[]{
+          ...,
+          _type == "image" => {
+            ...,
+            "url": coalesce(asset->url, url)
+          }
+        }
+      }`);
       if (res && res.length > 0) return res;
     } catch (e) {
       console.warn("Sanity fetch failed, using local seed data:", e);
@@ -87,7 +110,10 @@ export async function getDaysByChapter(chapterSlug: string): Promise<Day[]> {
 export async function getAllPractices(): Promise<Practice[]> {
   if (sanityClient) {
     try {
-      const res = await sanityClient.fetch<Practice[]>(`*[_type == "practice"] | order(order asc)`);
+      const res = await sanityClient.fetch<Practice[]>(`*[_type == "practice"] | order(order asc){
+        ...,
+        "imageUrl": coalesce(image.asset->url, imageUrl)
+      }`);
       if (res && res.length > 0) return res;
     } catch (e) {
       console.warn("Sanity fetch failed, using local seed data:", e);
