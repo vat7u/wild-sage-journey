@@ -4,7 +4,10 @@ import { createClient } from "@sanity/client";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "tun41dyc";
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
-const token = process.env.SANITY_API_TOKEN || "sk9MxpxT7kpZA8P7Yr7a9UpVz8B1dkQ5wEF92w9YeQcAcMSjqh7J2aotXnpGMsFbJOgjKCxe5P8SxR5ZA9ZjsT1xLcNoGKBfmYzRS3HmlGDIErEf54RnIp6XtXe8w7dRRAs7BssiFz9Bfdl7IhIPDD11V8zmv52E6AFQFl9zkfk6iDhKsy4I";
+const token = process.env.SANITY_API_TOKEN;
+if (!token) {
+  throw new Error("SANITY_API_TOKEN is not set. Refusing to run without an explicit write token.");
+}
 
 console.log(`Connecting to Sanity: project=${projectId}, dataset=${dataset}`);
 
