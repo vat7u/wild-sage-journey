@@ -32,7 +32,7 @@ seconds without a rebuild. The Sanity Studio is embedded at `/studio`. See
   (`app`, including the `api/revalidate` webhook), UI (`components`), data
   layer and types (`lib`), Studio config and schemas (`sanity`).
 - scripts: [./scripts/CLAUDE.md](./scripts/CLAUDE.md) - the one-off content
-  model patch (and its pending `--cleanup` step).
+  model patch (already applied, including `--cleanup`).
 - docs: design brief/RFC (`docs/designs/`).
 
 ## Global Invariants

@@ -37,9 +37,6 @@ export const dayType = defineType({
       description: "Show this entry under 'Selected Moments' on the home page (up to 4, earliest first).",
       initialValue: false,
     }),
-    // Legacy fields kept hidden until the cleanup patch removes them from the data
-    defineField({ name: "date", title: "Legacy date text", type: "string", hidden: true, readOnly: true }),
-    defineField({ name: "dayNumber", title: "Legacy day number", type: "number", hidden: true, readOnly: true }),
     defineField({
       name: "location",
       title: "Location / City",

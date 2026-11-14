@@ -16,7 +16,7 @@ in git history.
   - `siteSettings.aboutText` / `preparationText` as Portable Text (copied from
     the old page code), `introduction` (home quote), `preparationImage`,
     `footerText`, `footerQuote`.
-  - `--cleanup` mode unsets the legacy `date` and `dayNumber` on all days.
+  - `--cleanup` mode unset the legacy `date` and `dayNumber` on all days (run 2026-11-14 after the deploy).
 - Modes: dry run by default; `--confirm` writes; `--cleanup [--confirm]`.
 
 ## Invariants
