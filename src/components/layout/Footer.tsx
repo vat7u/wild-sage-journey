@@ -3,7 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function Footer() {
+export interface FooterChapter {
+  title: string;
+  slug: string;
+  order: number;
+  isInterlude: boolean;
+}
+
+interface FooterProps {
+  siteTitle: string;
+  footerText?: string;
+  dateRange?: string;
+  footerQuote?: string;
+  chapters: FooterChapter[];
+}
+
+/** Chapter titles are stored as e.g. "Chapter 01 — Morocco"; the footer lists them as "01 — Morocco". */
+function chapterLabel(c: FooterChapter): string {
+  return c.title.replace(/^Chapter\s+/i, "");
+}
+
+export function Footer({ siteTitle, footerText, dateRange, footerQuote, chapters }: FooterProps) {
   const pathname = usePathname();
 
   if (pathname?.startsWith("/studio")) {
@@ -17,14 +37,12 @@ export function Footer() {
           {/* Column 1: Book identity */}
           <div className="space-y-3">
             <h3 className="font-display tracking-[0.2em] text-xs uppercase text-ink-900 font-semibold">
-              The Journey
+              {siteTitle}
             </h3>
-            <p className="font-serif italic text-sm text-ink-600 max-w-sm leading-relaxed">
-              A personal travel memoir recorded chronologically across seventy days through original writing, photographs, and mindful contemplation.
-            </p>
-            <p className="font-sans text-xs tracking-wider text-ink-400">
-              March 21 – August 18, 2026
-            </p>
+            {footerText && (
+              <p className="font-serif italic text-sm text-ink-600 max-w-sm leading-relaxed">{footerText}</p>
+            )}
+            {dateRange && <p className="font-sans text-xs tracking-wider text-ink-400">{dateRange}</p>}
           </div>
 
           {/* Column 2: Chapters */}
@@ -33,38 +51,13 @@ export function Footer() {
               Chapters & Stages
             </h4>
             <ul className="space-y-2 font-serif text-sm">
-              <li>
-                <Link
-                  href="/journey/netherlands-belgium"
-                  className="hover:text-sage-dark transition-colors"
-                >
-                  01 — The Netherlands & Belgium
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/journey/morocco"
-                  className="hover:text-sage-dark transition-colors"
-                >
-                  02 — Morocco
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/journey/orlando-interlude"
-                  className="hover:text-sage-dark transition-colors"
-                >
-                  Interlude — Orlando, Florida
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/journey/argentina"
-                  className="hover:text-sage-dark transition-colors"
-                >
-                  03 — Argentina
-                </Link>
-              </li>
+              {chapters.map((c) => (
+                <li key={c.slug}>
+                  <Link href={`/journey/${c.slug}`} className="hover:text-sage-dark transition-colors">
+                    {chapterLabel(c)}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -112,8 +105,8 @@ export function Footer() {
         </div>
 
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs font-sans text-ink-400 space-y-3 sm:space-y-0">
-          <p>© 2026 The Journey. All authentic diary writings and photographs preserved.</p>
-          <p className="italic font-serif">"Every cup has a story."</p>
+          <p>© {new Date().getFullYear()} {siteTitle}. All authentic diary writings and photographs preserved.</p>
+          {footerQuote && <p className="italic font-serif">&ldquo;{footerQuote}&rdquo;</p>}
         </div>
       </div>
     </footer>

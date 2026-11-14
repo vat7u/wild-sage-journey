@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Compass } from "lucide-react";
 
-export function Navbar() {
+export function Navbar({ siteTitle }: { siteTitle: string }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -31,7 +31,7 @@ export function Navbar() {
           className="group flex flex-col items-start focus:outline-none"
         >
           <span className="font-display tracking-[0.25em] text-sm sm:text-base font-semibold text-ink-900 group-hover:text-sage-dark transition-colors uppercase">
-            The Journey
+            {siteTitle}
           </span>
           <span className="font-serif italic text-xs text-ink-500 tracking-wider">
             A Digital Memoir

@@ -1,19 +1,45 @@
 import { createClient } from "@sanity/client";
-import seedData from "@/lib/content/seedData.json";
 import { Day, Chapter, Practice, Place, SiteSettings } from "@/lib/types";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "tun41dyc";
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
 const apiVersion = "2024-03-01";
 
-export const sanityClient = projectId
-  ? createClient({
-      projectId,
-      dataset,
-      apiVersion,
-      useCdn: process.env.NODE_ENV === "production",
-    })
-  : null;
+/**
+ * Sanity is the only source of content. Results are kept in the Next.js data
+ * cache until the Sanity webhook (src/app/api/revalidate/route.ts) revalidates
+ * the tag of the document type that changed, so published edits appear within
+ * seconds without a rebuild. The API CDN is skipped so a revalidation never
+ * reads a stale copy.
+ */
+export const sanityClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  useCdn: false,
+  perspective: "published",
+});
+
+/** Document types the site reads; each one is also a cache tag. */
+export const CONTENT_TAGS = ["day", "chapter", "practice", "place", "siteSettings"] as const;
+type ContentTag = (typeof CONTENT_TAGS)[number];
+
+async function query<T>(name: string, groq: string, tags: ContentTag[], params: Record<string, unknown> = {}): Promise<T> {
+  try {
+    return await sanityClient.fetch<T>(groq, params, { next: { revalidate: false, tags } });
+  } catch (e) {
+    // Fail loudly: a build stops here and the previous deployment stays live;
+    // a failed background revalidation keeps serving the last good page.
+    throw new Error(`Sanity query "${name}" failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+function required<T>(name: string, value: T | null | undefined): T {
+  if (value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
+    throw new Error(`Sanity query "${name}" returned no content. Check the dataset "${dataset}" in project "${projectId}".`);
+  }
+  return value;
+}
 
 // Helper to normalize slug strings
 export function getSlugString(slug: { current: string } | string | undefined): string {
@@ -22,36 +48,46 @@ export function getSlugString(slug: { current: string } | string | undefined): s
   return slug.current;
 }
 
+/** "2026-03-23" -> "March 23, 2026" (parsed as a calendar date, no time zone shift). */
+export function formatEntryDate(isoDate: string | undefined): string {
+  if (!isoDate) return "";
+  const [y, m, d] = isoDate.split("-").map(Number);
+  if (!y || !m || !d) return isoDate;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // 1. Site Settings
 export async function getSiteSettings(): Promise<SiteSettings> {
-  if (sanityClient) {
-    try {
-      const res = await sanityClient.fetch<SiteSettings>(`*[_type == "siteSettings"][0]{
-        ...,
-        "heroImageUrl": coalesce(heroImage.asset->url, heroImageUrl)
-      }`);
-      if (res && res.siteTitle) return res;
-    } catch (e) {
-      console.warn("Sanity fetch failed, using local seed data:", e);
-    }
-  }
-  return seedData.siteSettings as unknown as SiteSettings;
+  const res = await query<SiteSettings | null>(
+    "siteSettings",
+    `*[_type == "siteSettings"][0]{
+      ...,
+      "heroImageUrl": heroImage.asset->url,
+      "heroImageAlt": heroImage.alt,
+      "preparationImageUrl": preparationImage.asset->url,
+      "preparationImageAlt": preparationImage.alt
+    }`,
+    ["siteSettings"]
+  );
+  return required("siteSettings", res);
 }
 
 // 2. Chapters
 export async function getAllChapters(): Promise<Chapter[]> {
-  if (sanityClient) {
-    try {
-      const res = await sanityClient.fetch<Chapter[]>(`*[_type == "chapter"] | order(order asc){
-        ...,
-        "imageUrl": coalesce(coverImage.asset->url, imageUrl)
-      }`);
-      if (res && res.length > 0) return res;
-    } catch (e) {
-      console.warn("Sanity fetch failed, using local seed data:", e);
-    }
-  }
-  return (seedData.chapters as unknown as Chapter[]).sort((a, b) => a.order - b.order);
+  const res = await query<Chapter[]>(
+    "chapters",
+    `*[_type == "chapter"] | order(order asc){
+      ...,
+      "imageUrl": coverImage.asset->url
+    }`,
+    ["chapter"]
+  );
+  return required("chapters", res);
 }
 
 export async function getChapterBySlug(slug: string): Promise<Chapter | null> {
@@ -59,34 +95,36 @@ export async function getChapterBySlug(slug: string): Promise<Chapter | null> {
   return chapters.find((c) => getSlugString(c.slug) === slug) || null;
 }
 
-// 3. Days
+// 3. Days (diary entries), in date order
 export async function getAllDays(): Promise<Day[]> {
-  if (sanityClient) {
-    try {
-      const res = await sanityClient.fetch<Day[]>(`*[_type == "day"] | order(order asc){
+  const res = await query<Day[]>(
+    "days",
+    `*[_type == "day" && defined(entryDate)] | order(entryDate asc, coalesce(order, 9999) asc){
+      ...,
+      "chapterSlug": chapter->slug.current,
+      "practiceSlugs": practices[]->slug.current,
+      "coverImageUrl": coverImage.asset->url,
+      "coverImageCaption": coverImage.caption,
+      "gallery": gallery[]{
         ...,
-        "chapterSlug": coalesce(chapter->slug.current, chapterSlug),
-        "practiceSlugs": coalesce(practices[]->slug.current, practiceSlugs),
-        "coverImageUrl": coalesce(coverImage.asset->url, coverImageUrl),
-        "coverImageCaption": coalesce(coverImage.caption, coverImageCaption),
-        "gallery": gallery[]{
+        "url": asset->url
+      },
+      "story": story[]{
+        ...,
+        _type == "image" => {
           ...,
-          "url": coalesce(asset->url, url)
-        },
-        "story": story[]{
-          ...,
-          _type == "image" => {
-            ...,
-            "url": coalesce(asset->url, url)
-          }
+          "url": asset->url
         }
-      }`);
-      if (res && res.length > 0) return res;
-    } catch (e) {
-      console.warn("Sanity fetch failed, using local seed data:", e);
-    }
-  }
-  return (seedData.days as unknown as Day[]).sort((a, b) => a.order - b.order);
+      }
+    }`,
+    ["day", "chapter", "practice"]
+  );
+  // Day numbers and display dates are derived, so a new entry slots in by its date
+  return required("days", res).map((d, i) => ({
+    ...d,
+    dayNumber: i + 1,
+    date: formatEntryDate(d.entryDate),
+  }));
 }
 
 export async function getDayBySlug(slug: string): Promise<{ day: Day; prevDay: Day | null; nextDay: Day | null } | null> {
@@ -106,20 +144,22 @@ export async function getDaysByChapter(chapterSlug: string): Promise<Day[]> {
   return days.filter((d) => d.chapterSlug === chapterSlug);
 }
 
+/** Entries ticked "Featured on home page", earliest first, at most `limit`. */
+export async function getFeaturedDays(limit = 4): Promise<Day[]> {
+  const days = await getAllDays();
+  return days.filter((d) => d.featured).slice(0, limit);
+}
+
 // 4. Practices
 export async function getAllPractices(): Promise<Practice[]> {
-  if (sanityClient) {
-    try {
-      const res = await sanityClient.fetch<Practice[]>(`*[_type == "practice"] | order(order asc){
-        ...,
-        "imageUrl": coalesce(image.asset->url, imageUrl)
-      }`);
-      if (res && res.length > 0) return res;
-    } catch (e) {
-      console.warn("Sanity fetch failed, using local seed data:", e);
-    }
-  }
-  return (seedData.practices as unknown as Practice[]).sort((a, b) => a.order - b.order);
+  return query<Practice[]>(
+    "practices",
+    `*[_type == "practice"] | order(order asc){
+      ...,
+      "imageUrl": image.asset->url
+    }`,
+    ["practice"]
+  );
 }
 
 export async function getPracticeBySlug(slug: string): Promise<{ practice: Practice; days: Day[] } | null> {
@@ -135,15 +175,7 @@ export async function getPracticeBySlug(slug: string): Promise<{ practice: Pract
 
 // 5. Places
 export async function getAllPlaces(): Promise<Place[]> {
-  if (sanityClient) {
-    try {
-      const res = await sanityClient.fetch<Place[]>(`*[_type == "place"]`);
-      if (res && res.length > 0) return res;
-    } catch (e) {
-      console.warn("Sanity fetch failed, using local seed data:", e);
-    }
-  }
-  return seedData.places as unknown as Place[];
+  return query<Place[]>("places", `*[_type == "place"] | order(name asc)`, ["place"]);
 }
 
 // 6. Photographs archive

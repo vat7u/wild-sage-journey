@@ -5,21 +5,20 @@ Sanity v3 document schemas built with `defineType` / `defineField` from `sanity`
 
 ## Interface
 - `index.ts:schemaTypes` - array `[dayType, chapterType, practiceType, placeType, siteSettingsType]`.
-- `dayType.ts:dayType` - document `day`; fields title, slug, date, dayNumber, location, country, chapter (reference to `chapter`), coverImage, story (Portable Text with block + inline image having caption/alt/layout), gallery (images with caption/altText), practices (references to `practice`), coordinates (geopoint), order.
-- `chapterType.ts:chapterType` - document `chapter`; fields title, slug, type (`chapter`|`interlude`, radio), country, subtitle, dateRange, startDate, endDate, coverImage, description, order.
+- `richText.ts:richTextBlock` - shared block definition: style `normal` only, no lists, decorators `strong`/`em`, `link` annotation (`href`: http, https or mailto).
+- `dayType.ts:dayType` - document `day` (Studio title "Diary Entry"); fields title, slug, `entryDate` (date), `featured` (boolean), hidden read-only legacy `date`/`dayNumber`, location, country, chapter (reference), coverImage (alt, caption), story (`richTextBlock` + inline image with caption/alt/layout), gallery (images with caption/altText), practices (references), coordinates (geopoint), `order` (optional same-date tie-break).
+- `chapterType.ts:chapterType` - document `chapter`; fields title, slug, type (`chapter`|`interlude`), country, subtitle, dateRange, startDate, endDate, coverImage (required), description, order.
 - `practiceType.ts:practiceType` - document `practice`; fields title, slug, description, image, order.
-- `placeType.ts:placeType` - document `place`; fields name, slug, country, coordinates, description, image.
-- `siteSettingsType.ts:siteSettingsType` - document `siteSettings`; fields siteTitle, subtitle, dateRange, countries, introduction, heroImage, preparationText, aboutText.
+- `placeType.ts:placeType` - document `place`; fields name, slug, country, coordinates (required, lat/lng range checked), description, image (hidden; not shown on the site).
+- `siteSettingsType.ts:siteSettingsType` - document `siteSettings`, grouped General / Home page / About page / Preparation page / Footer; fields siteTitle, subtitle, dateRange, countries, heroImage (alt), introduction (home quote, text), aboutText (rich text), preparationImage (alt), preparationText (rich text), footerText, footerQuote. Exports `SITE_SETTINGS_ID`.
 
 ## Invariants
-- Required fields: day (title, slug, date, chapter); chapter (title, slug, type, order); practice (title, slug, order); place (name, slug, country); siteSettings (siteTitle).
-- Slug `options.source` is `title` (day, chapter, practice) or `name` (place); maxLength 96.
-- Image field names (`coverImage`, `image`, `heroImage`) are referenced by GROQ in `src/lib/sanity/client.ts` (`coverImage.asset->url`, `image.asset->url`, `heroImage.asset->url`); renaming them breaks the queries (the code falls back to seed data silently).
-- Schema `name` values (`day`, `chapter`, `practice`, `place`, `siteSettings`) must match the `_type == "..."` filters in `client.ts`.
-- New types must be added to `index.ts:schemaTypes` to appear in Studio.
-- `dayType` and `chapterType` define `orderings` by `order` ascending.
-- `dayType.story` text blocks allow `strong`/`em` decorators and a `link` annotation (`href`, type `url`); `src/components/story/PortableStory.tsx` does not render them.
-- `practiceType.image` has an `alt` subfield that no GROQ projection reads, and `practiceType.preview.prepare` titles items `` `Practice 0${order}: ${title}` `` (assumes a single-digit order).
+- Required fields: day (title, slug, entryDate, chapter); chapter (title, slug, type, coverImage, order); practice (title, slug, order); place (name, slug, country, coordinates); siteSettings (siteTitle).
+- Every field must be shown by the site or hidden; rich text fields use `richTextBlock` because `src/components/story/PortableStory.tsx` renders only paragraphs, bold, italic and links.
+- Field names are referenced by GROQ in `src/lib/sanity/client.ts` (`entryDate`, `featured`, `coverImage.asset->url`, `image.asset->url`, `heroImage`, `preparationImage`, ...); renaming one makes the site lose that content (there is no fallback).
+- Schema `name` values must match the `_type == "..."` filters in `client.ts` and `CONTENT_TAGS`.
+- `dayType` orderings: by `entryDate` (then `order`) ascending, and newest first. The legacy `date`/`dayNumber` fields are removed from the data by `scripts/patch-content-model.ts --cleanup`; drop their definitions after that.
+- `practiceType.preview.prepare` titles items `` `Practice 0${order}: ${title}` `` (assumes a single-digit order).
 
 ## Side Effects
 - None at import time; definitions are declarative. They take effect when loaded by `../sanity.config.ts`.

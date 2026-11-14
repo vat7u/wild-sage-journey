@@ -1,32 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getAllChapters, getAllDays, getSiteSettings, getSlugString } from "@/lib/sanity/client";
-import { ArrowRight, Compass, Calendar, MapPin, Sparkles } from "lucide-react";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "The Journey — A Digital Travel Memoir",
-  description:
-    "A personal journey told chronologically through original diary writing, photographs, places, and experiences across the Netherlands, Belgium, Morocco, and Argentina.",
-};
+import { getAllChapters, getAllDays, getFeaturedDays, getSiteSettings, getSlugString } from "@/lib/sanity/client";
+import { ArrowRight, Compass } from "lucide-react";
 
 export default async function HomePage() {
-  const [settings, chapters, allDays] = await Promise.all([
+  const [settings, chapters, allDays, curatedMoments] = await Promise.all([
     getSiteSettings(),
     getAllChapters(),
     getAllDays(),
+    getFeaturedDays(4),
   ]);
 
   const firstDay = allDays[0];
-  const firstDaySlug = firstDay ? getSlugString(firstDay.slug) : "arrived-in-amsterdam";
-
-  // Curated moments for the memoir cover (moments with strong imagery across stages)
-  const curatedMoments = [
-    allDays.find((d) => d.title.toLowerCase().includes("waterlooplein")) || allDays[1],
-    allDays.find((d) => d.title.toLowerCase().includes("keukenhof")) || allDays[16],
-    allDays.find((d) => d.title.toLowerCase().includes("chefchaouen")) || allDays[57],
-    allDays.find((d) => d.title.toLowerCase().includes("casa rosada") || d.title.toLowerCase().includes("japanese garden")) || allDays[67],
-  ].filter(Boolean);
+  const firstDaySlug = firstDay ? getSlugString(firstDay.slug) : "";
 
   return (
     <div className="min-h-screen">
@@ -46,27 +32,29 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* Large Hero Photograph */}
-          <figure className="relative aspect-[16/10] sm:aspect-[21/9] w-full max-h-[620px] rounded-sm overflow-hidden bg-paper-200 border border-border-subtle shadow-md my-8">
-            <Image
-              src={settings.heroImageUrl || "/images/Netherland.jpg"}
-              alt="The Journey - Netherlands canals and historic spring scenery"
-              fill
-              priority
-              className="object-cover"
-              sizes="(max-width: 1200px) 100vw, 1200px"
-            />
-          </figure>
+          {/* Large Hero Photograph (Site Settings → Home page) */}
+          {settings.heroImageUrl && (
+            <figure className="relative aspect-[16/10] sm:aspect-[21/9] w-full max-h-[620px] rounded-sm overflow-hidden bg-paper-200 border border-border-subtle shadow-md my-8">
+              <Image
+                src={settings.heroImageUrl}
+                alt={settings.heroImageAlt || settings.siteTitle}
+                fill
+                priority
+                className="object-cover"
+                sizes="(max-width: 1200px) 100vw, 1200px"
+              />
+            </figure>
+          )}
 
           {/* Begin the journey CTA */}
-          <div className="pt-4">
+          {firstDaySlug && <div className="pt-4">
             <Link
               href={`/story/${firstDaySlug}`}
               className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-sage text-white font-sans text-xs sm:text-sm tracking-[0.18em] uppercase hover:bg-sage-dark transition-all duration-300 shadow-sm hover:shadow-md group"
             >
               Begin the journey <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
+          </div>}
         </div>
       </section>
 
@@ -79,11 +67,11 @@ export default async function HomePage() {
           <h2 className="font-serif text-3xl sm:text-4xl text-ink-900 font-medium leading-snug">
             Pursuing Wellness Coaching Across Three Continents
           </h2>
-          <div className="font-serif text-ink-700 text-lg sm:text-xl leading-relaxed space-y-4 pt-2">
-            <p className="italic">
-              &ldquo;I am a lifelong learner which inspired me to go back to school and graduate with a B.S. in Alternative Medicine. During that time I decided I wanted to pursue wellness coaching. While working on that career change I am taking a journey and pursuing certification as a wellness coach. This site will follow that journey.&rdquo;
-            </p>
-          </div>
+          {settings.introduction && (
+            <div className="font-serif text-ink-700 text-lg sm:text-xl leading-relaxed space-y-4 pt-2">
+              <p className="italic">&ldquo;{settings.introduction.trim()}&rdquo;</p>
+            </div>
+          )}
           <div className="pt-4">
             <Link
               href="/about"
@@ -106,7 +94,7 @@ export default async function HomePage() {
               The Chapters
             </h2>
             <p className="font-serif italic text-base text-ink-600">
-              Chronologically unfolding through four regional transitions.
+              Chronologically unfolding through {chapters.length} stages of the journey.
             </p>
           </div>
 
@@ -156,8 +144,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4. CURATED MOMENTS FROM THE JOURNEY */}
-      <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
+      {/* 4. CURATED MOMENTS: entries ticked "Featured on home page" in the Studio */}
+      {curatedMoments.length > 0 && <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto space-y-16">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-border-subtle">
             <div className="space-y-2">
@@ -216,7 +204,7 @@ export default async function HomePage() {
             })}
           </div>
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

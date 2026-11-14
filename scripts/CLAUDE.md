@@ -1,70 +1,37 @@
 # scripts
 
 ## Overview
-One-off Node/TypeScript migration scripts (run with `tsx`) that turn the
-Markdown source content in the sibling `../Content` directory plus the images
-in `public/images` into the Sanity documents used by the site
-(`siteSettings`, chapters, practices, places, days). Both scripts also
-regenerate the local fallback dataset `src/lib/content/seedData.json`.
+One-off maintenance scripts run with `tsx` against the Sanity dataset. The site
+itself never runs them. The earlier migration scripts (`import-content-to-sanity.ts`,
+`upload-all-to-sanity.ts`, `migrate-seed-to-sanity.ts`) and `seedData.json`
+were removed on 2026-11-14 after the content was verified in Sanity; they are
+in git history.
 
 ## Interface
-- `migrate-seed-to-sanity.ts` — the migration that was actually run
-  (2026-11-10) to fill the `production` dataset. Reads
-  `src/lib/content/seedData.json` and `public/images`, uploads every image as
-  a Sanity asset, rewrites image URLs into asset references (`coverImage`,
-  `image`, `heroImage`, story images, `gallery`), drops the legacy
-  `*Url`/`chapterSlug`/`practiceSlugs` fields, and `createOrReplace`s all
-  documents with their seed IDs and slugs. Dry run by default; `--confirm`
-  writes; it aborts if content documents already exist unless `--force` is
-  given (which would overwrite Studio edits). Do not re-run it against a
-  dataset the owner has edited.
-- `import-content-to-sanity.ts` — wired to `npm run import:sanity`
-  (`package.json`). Top-level script; nothing is exported. Internal helpers:
-  `slugify`, `parseStoryHeading`, `extractLocation`,
-  `determineCountryAndChapter`, `mapImagesToStory`, `detectPractices`,
-  `buildPortableText`, `run`. Uses the `CITY_COORDINATES` lookup table and the
-  `StoryEntry` interface.
-  - Outputs: `src/lib/content/seedData.json` and `sanity-export.ndjson` (repo
-    root, gitignored), suitable for `npx sanity dataset import`.
-  - Pushes to Sanity only when `NEXT_PUBLIC_SANITY_PROJECT_ID` and
-    `SANITY_API_TOKEN` are both set (`NEXT_PUBLIC_SANITY_DATASET` defaults to
-    `production`).
-- `upload-all-to-sanity.ts` — not wired to an npm script. Same parsing helpers
-  as above (its `determineCountryAndChapter` takes no `index`), plus
-  `uploadImages` and `run`. Uploads every file in `public/images` as a Sanity
-  image asset (skipping `originalFilename`s already in the dataset), rebuilds
-  the documents with asset references, rewrites `seedData.json`, then
-  `createOrReplace`s all documents.
+- `patch-content-model.ts` — moved the last hard-coded content into Sanity and
+  filled the fields added on 2026-11-14:
+  - `day.entryDate` from the legacy free-text `date` (year 2026;
+    "End of July" set to 2026-07-28, `DATE_OVERRIDES`), `day.featured` on the four
+    entries the home page used to pick by keyword (`FEATURED_ORDERS`);
+  - `siteSettings.aboutText` / `preparationText` as Portable Text (copied from
+    the old page code), `introduction` (home quote), `preparationImage`,
+    `footerText`, `footerQuote`.
+  - `--cleanup` mode unsets the legacy `date` and `dayNumber` on all days.
+- Modes: dry run by default; `--confirm` writes; `--cleanup [--confirm]`.
 
 ## Invariants
-- Must be run with the project root as `process.cwd()`: paths are
-  `path.resolve(process.cwd(), "../Content")`, `"public/images"`,
-  `"src/lib/content/seedData.json"` and `"sanity-export.ndjson"`.
-- `../Content` must contain `About.md`, `Preparation.md`, `The 8 Practices.md`
-  and `Storyline.md`; `import-content-to-sanity.ts` throws if the directory is
-  missing.
-- Document writes are idempotent (`createOrReplace`); `upload-all-to-sanity.ts`
-  commits in chunks of 20 documents (`chunkSize`).
-- API version is pinned to `2024-03-01` with `useCdn: false`.
-- Keep the output shape of `seedData.json`
-  (`siteSettings`, `chapters`, `practices`, `days`, `places`) in sync with
-  `src/lib/types.ts` and the schema in `src/sanity/schemaTypes`.
+- Run from the project root (reads `.env.local`); writes need
+  `SANITY_API_TOKEN` (Editor token; revoke it afterwards).
+- All main-mode writes use `setIfMissing` (or replace a field only while it is
+  still the old plain-string type), so re-running never overwrites Studio edits.
+- `--cleanup` refuses to run while any entry lacks `entryDate`, and must only
+  run once the deployed site reads `entryDate` (older builds read `date`).
+  After cleanup the main mode can no longer derive dates; it is not meant to be
+  re-run.
 
 ## Side Effects
-- Overwrites `src/lib/content/seedData.json` on every run (creates the
-  directory if needed).
-- `import-content-to-sanity.ts` also overwrites `sanity-export.ndjson`.
-- Network: writes to the Sanity project/dataset resolved from env
-  (`upload-all-to-sanity.ts` defaults to project `tun41dyc`, dataset
-  `production` when env vars are absent) — it mutates live content and
-  uploads assets.
-- Security: `upload-all-to-sanity.ts` used to fall back to a hard-coded API
-  token. The literal was removed on 2026-11-10 (the script now throws without
-  `SANITY_API_TOKEN`) and the token was revoked, but it remains in git history.
-- Known gap: `package.json` defines `export:dataset` pointing at
-  `scripts/export-sanity-dataset.ts`, which does not exist in this directory.
+- Network writes to the Sanity dataset from `.env.local`.
 
 ## Verification
-- Run: `npm run build` (the repo defines no test script; the scripts are not
-  covered by the Next.js build, so exercise them with
-  `npx tsx scripts/<file>.ts` only against a non-production dataset).
+- Dry run: `npx tsx scripts/patch-content-model.ts` (expects 70 dated, 4 featured,
+  "already converted").

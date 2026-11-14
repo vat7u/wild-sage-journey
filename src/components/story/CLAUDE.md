@@ -1,21 +1,21 @@
 # story
 
 ## Overview
-Server-compatible (no `"use client"`) renderer that turns Sanity portable-text style story blocks into styled paragraphs and figures.
+Server-compatible (no `"use client"`) Portable Text renderers built on `@portabletext/react`: diary entry bodies (paragraphs and inline photographs) and text-only rich text for the About and Preparation pages.
 
 ## Interface
-- `PortableStory({ blocks }: { blocks: StoryBlock[] })` in `PortableStory.tsx`. Props type `PortableStoryProps` is local (not exported). `StoryBlock` comes from `@/lib/types`.
+- `PortableStory({ blocks }: { blocks: StoryBlock[] })` in `PortableStory.tsx` — paragraphs with bold, italic and links, plus `image` blocks (caption, `layout`).
+- `RichText({ blocks, dropCap? })` — paragraphs with bold, italic and links only (images ignored); used by `src/app/about` and `src/app/preparation`.
+- `StoryBlock` comes from `@/lib/types`.
 
 ## Invariants
-- Returns `null` when `blocks` is falsy or empty (`PortableStory.tsx:PortableStory`).
-- Only `_type === "image"` (with a truthy `url`) and `_type === "block"` are rendered; any other block type renders `null`.
-- Text blocks are flattened with `block.children?.map(c => c.text).join("")`; whitespace-only text renders nothing. Marks/styles/links are not rendered, even though `src/sanity/schemaTypes/dayType.ts` lets editors author `strong`/`em` decorators, a `link` annotation and block styles; that formatting is silently dropped.
-- Only the block at index 0 gets the drop-cap classes, and only if it is a text block.
-- Image `layout === "full"` selects the wide variant; anything else uses the `max-w-2xl` variant. Alt falls back to `caption`, then `"Travel photograph"`.
-- Keys use `_key`, falling back to `img-${idx}` / `p-${idx}`.
+- Both return `null` for falsy or empty `blocks`; empty (whitespace-only) paragraphs render nothing.
+- Rendered marks are exactly the ones the Studio allows (`src/sanity/schemaTypes/richText.ts`): `strong`, `em`, `link`. Links pass `safeHref` (only `http`, `https`, `mailto`; anything else renders as plain text); external links open in a new tab with `rel="noopener noreferrer"`.
+- `PortableStory` gives the drop cap to the paragraph at index 0 only when the first block is text; `RichText` does so when `dropCap` is set.
+- Image `layout === "full"` selects the wide variant; anything else uses `max-w-2xl`. Alt falls back to `caption`, then `"Travel photograph"`. Images without `url` are skipped.
 
 ## Side Effects
-- None (pure render). Uses `next/image` with `fill`, so image hosts must be allowed by Next image config.
+- None (pure render). Uses `next/image` with `fill`, so image hosts must be allowed by Next image config (`cdn.sanity.io`).
 
 ## Verification
-- Run: `npm run build` (no test script in `package.json`)
+- Run: `npm run build`; a story with bold text and a link should render `<strong>` and an `<a target="_blank">`.

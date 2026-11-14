@@ -22,7 +22,7 @@ export default async function PhotographsPage() {
             Photographs
           </h1>
           <p className="font-serif italic text-base sm:text-lg text-ink-600">
-            Moments, architectural wonders, and quiet encounters captured throughout seventy days of travel.
+            Moments, architectural wonders, and quiet encounters captured throughout the journey.
           </p>
         </header>
 

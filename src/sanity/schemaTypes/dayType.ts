@@ -1,8 +1,9 @@
 import { defineField, defineType } from "sanity";
+import { richTextBlock } from "./richText";
 
 export const dayType = defineType({
   name: "day",
-  title: "Day Entry",
+  title: "Diary Entry",
   type: "document",
   fields: [
     defineField({
@@ -22,18 +23,23 @@ export const dayType = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: "date",
-      title: "Date Display",
-      type: "string",
-      description: "e.g., 'March 23, 2026' or 'March 23'",
+      name: "entryDate",
+      title: "Date",
+      type: "date",
+      description: "The day this entry is about. Entries are listed in date order.",
+      options: { dateFormat: "MMMM D, YYYY" },
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: "dayNumber",
-      title: "Day Number",
-      type: "number",
-      description: "Sequential day of the journey (1, 2, 3...)",
+      name: "featured",
+      title: "Featured on home page",
+      type: "boolean",
+      description: "Show this entry under 'Selected Moments' on the home page (up to 4, earliest first).",
+      initialValue: false,
     }),
+    // Legacy fields kept hidden until the cleanup patch removes them from the data
+    defineField({ name: "date", title: "Legacy date text", type: "string", hidden: true, readOnly: true }),
+    defineField({ name: "dayNumber", title: "Legacy day number", type: "number", hidden: true, readOnly: true }),
     defineField({
       name: "location",
       title: "Location / City",
@@ -77,42 +83,10 @@ export const dayType = defineType({
       name: "story",
       title: "Story / Diary Content (Editorial Portable Text)",
       description:
-        "Original diary text. Supports paragraphs, headings, emphasis, links, and inline editorial images with captions.",
+        "Original diary text: paragraphs with bold, italic and links, plus inline photographs with captions.",
       type: "array",
       of: [
-        {
-          type: "block",
-          styles: [
-            { title: "Normal", value: "normal" },
-            { title: "Heading 3", value: "h3" },
-            { title: "Heading 4", value: "h4" },
-            { title: "Quote", value: "blockquote" },
-          ],
-          lists: [
-            { title: "Bullet", value: "bullet" },
-            { title: "Numbered", value: "number" },
-          ],
-          marks: {
-            decorators: [
-              { title: "Strong", value: "strong" },
-              { title: "Emphasis", value: "em" },
-            ],
-            annotations: [
-              {
-                name: "link",
-                type: "object",
-                title: "URL",
-                fields: [
-                  {
-                    title: "URL",
-                    name: "href",
-                    type: "url",
-                  },
-                ],
-              },
-            ],
-          },
-        },
+        richTextBlock,
         {
           type: "image",
           title: "Inline Editorial Image",
@@ -183,31 +157,41 @@ export const dayType = defineType({
     }),
     defineField({
       name: "order",
-      title: "Chronological Order Index",
+      title: "Order within the same date (optional)",
       type: "number",
-      description: "Used to sort the journey chronologically",
+      description:
+        "Only needed when two entries share a date: the lower number is listed first. Leave empty otherwise.",
     }),
   ],
   preview: {
     select: {
       title: "title",
-      date: "date",
+      entryDate: "entryDate",
       location: "location",
+      featured: "featured",
       media: "coverImage",
     },
-    prepare({ title, date, location, media }) {
+    prepare({ title, entryDate, location, featured, media }) {
       return {
-        title: title || "Untitled Day",
-        subtitle: `${date || ""} · ${location || ""}`.trim(),
+        title: `${featured ? "★ " : ""}${title || "Untitled entry"}`,
+        subtitle: [entryDate, location].filter(Boolean).join(" · "),
         media,
       };
     },
   },
   orderings: [
     {
-      title: "Chronological Order",
-      name: "orderAsc",
-      by: [{ field: "order", direction: "asc" }],
+      title: "Date, earliest first",
+      name: "entryDateAsc",
+      by: [
+        { field: "entryDate", direction: "asc" },
+        { field: "order", direction: "asc" },
+      ],
+    },
+    {
+      title: "Date, newest first",
+      name: "entryDateDesc",
+      by: [{ field: "entryDate", direction: "desc" }],
     },
   ],
 });

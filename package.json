@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "import:sanity": "tsx scripts/import-content-to-sanity.ts",
-    "export:dataset": "tsx scripts/export-sanity-dataset.ts"
+    "start": "next start"
   },
   "keywords": [],
   "author": "",

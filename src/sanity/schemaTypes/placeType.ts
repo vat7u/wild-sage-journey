@@ -32,7 +32,16 @@ export const placeType = defineType({
       name: "coordinates",
       title: "Coordinates",
       type: "geopoint",
-      description: "Latitude and longitude for placing on the map",
+      description:
+        "Latitude and longitude for the map pin. Diary entries appear under this place when their Location contains the place name.",
+      validation: (Rule) =>
+        Rule.required().custom((value: { lat?: number; lng?: number } | undefined) => {
+          if (!value) return true;
+          const { lat, lng } = value;
+          if (typeof lat !== "number" || lat < -90 || lat > 90) return "Latitude must be between -90 and 90";
+          if (typeof lng !== "number" || lng < -180 || lng > 180) return "Longitude must be between -180 and 180";
+          return true;
+        }),
     }),
     defineField({
       name: "description",
@@ -45,6 +54,8 @@ export const placeType = defineType({
       title: "Featured Image",
       type: "image",
       options: { hotspot: true },
+      // Not shown anywhere on the site yet
+      hidden: true,
     }),
   ],
   preview: {

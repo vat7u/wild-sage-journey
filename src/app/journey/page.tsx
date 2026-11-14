@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "The Journey — Chronological Timeline",
   description:
-    "Explore the complete chronological timeline of seventy days across the Netherlands, Belgium, Morocco, and Argentina.",
+    "Explore the complete chronological timeline of the diary across the Netherlands, Belgium, Morocco, and Argentina.",
 };
 
 export default async function JourneyPage() {
@@ -35,7 +35,7 @@ export default async function JourneyPage() {
             The Journey
           </h1>
           <p className="font-serif italic text-base sm:text-lg text-ink-600 max-w-xl mx-auto">
-            Seventy days recorded as they unfolded across three continents, from spring in Amsterdam to winter in Buenos Aires.
+            {days.length} diary entries recorded as they unfolded across three continents, from spring in Amsterdam to winter in Buenos Aires.
           </p>
         </header>
 

@@ -3,6 +3,8 @@
 * **Author:** vat7u
 * **Date:** 2026-11-10
 
+> **Status (2026-11-14):** implemented. Content and photos are in Sanity; the seed fallback, `seedData.json`, the old scripts and `public/images` are removed; the site refreshes from a Sanity webhook (`/api/revalidate`); entries have a real date and a featured checkbox; About, Preparation, home quote and footer come from Site Settings. Changes from this brief: photos moved in the first release, and the map was rebuilt on OpenStreetMap.
+
 ## Overview
 
 The Journey site shows about 70 diary entries, 4 chapters, 8 practices, a map of

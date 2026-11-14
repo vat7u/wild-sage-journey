@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "The 8 Practices — The Journey",
   description:
-    "An alternative lens through which to explore the journey, tracing eight intentional practices woven through seventy days of travel.",
+    "An alternative lens through which to explore the journey, tracing eight intentional practices woven through the journey.",
 };
 
 export default async function PracticesPage() {

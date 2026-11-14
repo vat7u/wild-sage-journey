@@ -1,15 +1,18 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
+import { getAllDays, getSiteSettings } from "@/lib/sanity/client";
+import { RichText } from "@/components/story/PortableStory";
 
 export const metadata: Metadata = {
   title: "About — The Journey",
   description:
-    "A personal journey pursuing certification as a wellness coach through five months of travel across three continents.",
+    "A personal journey pursuing certification as a wellness coach through travel across three continents.",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const [settings, days] = await Promise.all([getSiteSettings(), getAllDays()]);
+
   return (
     <div className="min-h-screen py-16 px-4 sm:px-6 lg:px-8">
       <article className="max-w-3xl mx-auto space-y-12">
@@ -25,19 +28,9 @@ export default function AboutPage() {
           </p>
         </header>
 
-        {/* Verbatim narrative text from About.md */}
+        {/* Narrative text from Site Settings → About Me */}
         <div className="font-serif text-ink-800 text-lg md:text-xl leading-[1.9] space-y-8 pt-6 border-t border-border-subtle">
-          <p className="first-letter:font-display first-letter:text-5xl first-letter:float-left first-letter:mr-3 first-letter:text-sage-dark first-letter:leading-none first-letter:pt-1">
-            I was born in Pennsylvania and lived there until I was 8 years old. I lived near my grandparents and lots of cousins. My fondest memories are times with family. At age 8 my family moved to New York. Every year we would go back to PA for Christmas and the whole family would gather in my grandparents tiny house. The rest of the week we would travel around to other Aunt and Uncles celebrating all week. To this day Christmas is my favorite time of year.
-          </p>
-
-          <p>
-            I have had many careers from working in medical manufacturing, school aide and librarian to health and wellness retail. I am a lifelong learner which inspired me to go back to school and graduate with a B.S. in Alternative Medicine. During that time I decided I wanted to pursue wellness coaching.
-          </p>
-
-          <p>
-            While working on that career change I am taking a journey and pursuing certification as a wellness coach. This site will follow that journey.
-          </p>
+          <RichText blocks={settings.aboutText} dropCap />
         </div>
 
         {/* Subtle Call to Journey */}
@@ -47,7 +40,7 @@ export default function AboutPage() {
               Explore the Travel Memoir
             </h3>
             <p className="font-serif italic text-sm text-ink-500">
-              Read seventy days of original diary entries and photography.
+              Read {days.length} original diary entries and photography.
             </p>
           </div>
 

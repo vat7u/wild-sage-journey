@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Places & Journey Map — The Journey",
   description:
-    "An editorial geographic map tracing seventy days of discovery across the Netherlands, Belgium, Morocco, and Argentina.",
+    "An editorial geographic map tracing the journey across the Netherlands, Belgium, Morocco, and Argentina.",
 };
 
 export default async function PlacesPage() {

@@ -69,6 +69,7 @@ export const chapterType = defineType({
       title: "Cover / Hero Image",
       type: "image",
       options: { hotspot: true },
+      validation: (Rule) => Rule.required(),
       fields: [
         {
           name: "alt",
